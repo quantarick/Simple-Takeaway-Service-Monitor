@@ -62,6 +62,4 @@ public class ShelfController {
             .data(shelf)
             .build();
     }
-
-
 }

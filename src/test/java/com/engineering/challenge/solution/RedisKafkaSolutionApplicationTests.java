@@ -8,8 +8,8 @@ class RedisKafkaSolutionApplicationTests {
 
 	@Test
 	void contextLoads() {
-
-
 	}
+
+
 
 }

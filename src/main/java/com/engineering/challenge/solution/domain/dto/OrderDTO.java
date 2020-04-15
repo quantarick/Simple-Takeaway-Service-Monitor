@@ -17,4 +17,6 @@ public class OrderDTO {
     private ShelfType temp;
 
     private Double shelfLife;
+
+    private Double normalizedValue;
 }

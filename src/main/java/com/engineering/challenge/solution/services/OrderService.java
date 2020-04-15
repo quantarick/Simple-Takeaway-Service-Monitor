@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
 
+import static com.engineering.challenge.solution.domain.ShelfType.OVERFLOW;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -32,6 +34,8 @@ public class OrderService {
     private final RedissonClient redissonClient;
 
     private final KafkaTemplate<Long, Object> kafkaTemplate;
+
+    private final ShelfService shelfService;
 
     @Value("#{${order-app.shelf-capacity}}")
     private Map<ShelfType, Integer> shelfCapacity;
@@ -44,11 +48,11 @@ public class OrderService {
     public void scanOverflowShelf() {
         // lock the overflow shelf.
         RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
-        RLock overflowShelfLock = redissonClient.getReadWriteLock(ShelfType.OVERFLOW.toString() + "_lock").writeLock();
+        RLock overflowShelfLock = redissonClient.getReadWriteLock(OVERFLOW.toString() + "_lock").writeLock();
         RScoredSortedSet<Long> overflowShelfTracker = redissonClient.getScoredSortedSet("overflow_shelf_tracker");
         overflowShelfLock.lock();
         try {
-            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(ShelfType.OVERFLOW.toString());
+            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(OVERFLOW.toString());
             while (overflowShelf.size() > 0) {
                 Long candidateOrderIdentifier = overflowShelfTracker.pollLast();
                 if (candidateOrderIdentifier != null) {
@@ -107,11 +111,11 @@ public class OrderService {
                     shelfLock.unlock();
 
                     // lock the overflow shelf.
-                    RLock overflowShelfLock = redissonClient.getReadWriteLock(ShelfType.OVERFLOW.toString() + "_lock").writeLock();
+                    RLock overflowShelfLock = redissonClient.getReadWriteLock(OVERFLOW.toString() + "_lock").writeLock();
                     if (overflowShelfLock.tryLock()) {
                         try {
-                            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(ShelfType.OVERFLOW.toString());
-                            if (overflowShelf.size() < shelfCapacity.get(ShelfType.OVERFLOW)) {
+                            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(OVERFLOW.toString());
+                            if (overflowShelf.size() < shelfCapacity.get(OVERFLOW)) {
                                 // put order on the overflow shelf.
                                 putOrderOnShelf(order, true, overflowShelf, orderStatus, overflowShelfTracker);
                             } else {
@@ -140,30 +144,38 @@ public class OrderService {
         }
     }
 
-    void putOrderOnShelf(Order order, Boolean toOverflowShelf, RMapCache shelf, RMapCache orderStatus, RScoredSortedSet overflowShelfTracker) {
+    void putOrderOnShelf(Order order, Boolean toOverflowShelf, RMapCache<Long, Order> shelf, RMapCache<Long, String> orderStatus, RScoredSortedSet<Long> overflowShelfTracker) {
         // set/reset on-shelf date for the order and ready to put on shelf.
         order.setOnShelfDate(LocalDateTime.now());
         order.setIsOnOverflowShelf(toOverflowShelf);
         order.resetValue();
-        logger.info(String.format("put order on shelf[%s]: %s", toOverflowShelf ? ShelfType.OVERFLOW.toString() : order.getTemp(), order.toString()));
+
+        ShelfType toShelfType = toOverflowShelf ? OVERFLOW : order.getTemp();
+        logger.info(String.format("put order on shelf[%s]: %s", toShelfType, order.toString()));
         shelf.put(order.getIdentifier(), order, order.getLatestDeliveryTime(), TimeUnit.SECONDS);
 
         // update the order status.
-        orderStatus.put(order.getIdentifier(), toOverflowShelf ? ShelfType.OVERFLOW.toString() : order.getTemp().toString());
+        orderStatus.put(order.getIdentifier(), toShelfType.toString());
 
         // setup the tracker if it's for overflow shelf.
         if (toOverflowShelf) {
             overflowShelfTracker.add(order.getLatestDeliveryTime(), order.getIdentifier());
         }
+
+        // send shelf change event
+        shelfService.onShelfChange(toShelfType);
     }
 
     Order removeFromShelf(Long orderIdentifier, Boolean fromOverflowShelf, RMapCache<Long, Order> shelf, RMapCache<Long, String> orderStatus) {
         Order order = shelf.remove(orderIdentifier);
+
         if (order == null) return null;
+
+        ShelfType fromShelfType = fromOverflowShelf ? OVERFLOW : order.getTemp();
 
         // !Important, need to reset value when situation changes.
         order.resetValue();
-        logger.info(String.format("remove order from shelf[%s]: %s", fromOverflowShelf ? ShelfType.OVERFLOW.toString() : order.getTemp(), order.toString()));
+        logger.info(String.format("remove order from shelf[%s]: %s", fromShelfType, order.toString()));
 
         // remove from the order status.
         RLock statusLock = orderStatus.getReadWriteLock(orderIdentifier).writeLock();
@@ -173,6 +185,9 @@ public class OrderService {
         } finally {
             statusLock.unlock();
         }
+
+        // send shelf change event
+        shelfService.onShelfChange(fromShelfType);
 
         return order;
     }
