@@ -3,13 +3,17 @@ package com.engineering.challenge.solution.domain.entities;
 import com.engineering.challenge.solution.domain.ShelfType;
 import com.engineering.challenge.solution.utils.FNV1a;
 
+import org.redisson.spring.data.connection.SecondsConvertor;
 import org.springframework.util.SerializationUtils;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 
 import lombok.Data;
+
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 @Data
 public class Order implements Serializable {
@@ -28,6 +32,8 @@ public class Order implements Serializable {
 
     private Boolean isOnOverflowShelf = false;
 
+    private LocalDateTime decayDate;
+
     public Long getIdentifier() {
         return FNV1a.hash64(SerializationUtils.serialize(name));
     }
@@ -37,7 +43,7 @@ public class Order implements Serializable {
      * t is the on-shelf duration counting from shelf-switch
      */
     public void resetValue() {
-        Long onShelfDuration = ChronoUnit.SECONDS.between(onShelfDate, LocalDateTime.now());
+        Long onShelfDuration = SECONDS.between(onShelfDate, LocalDateTime.now());
         Double actualDecayRate = getActualDecayRate();
         if (value == null) {
             value = shelfLife - (1d + actualDecayRate) * onShelfDuration;
@@ -47,17 +53,21 @@ public class Order implements Serializable {
     }
 
     public Double getNormalizedValue() {
-        if (value == null || shelfLife == null) return null;
-        return value / shelfLife;
+        if (decayDate == null || shelfLife == null) return null;
+        Long latestDeliveryTime = SECONDS.between(LocalDateTime.now(), decayDate);
+        return latestDeliveryTime / shelfLife;
     }
 
     public Long getLatestDeliveryTime() {
         Double actualDecayRate = getActualDecayRate();
+        Long latestDeliveryTime = null;
         if (value == null) {
-            return new Double(shelfLife / (1d + actualDecayRate)).longValue();
+            latestDeliveryTime = new Double(shelfLife / (1d + actualDecayRate)).longValue();
         } else {
-            return new Double(value / (1d + actualDecayRate)).longValue();
+            latestDeliveryTime = new Double(value / (1d + actualDecayRate)).longValue();
         }
+        decayDate = LocalDateTime.now().plus(latestDeliveryTime, SECONDS);
+        return latestDeliveryTime;
     }
 
     private Double getActualDecayRate() {
