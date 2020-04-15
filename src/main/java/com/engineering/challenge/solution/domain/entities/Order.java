@@ -36,8 +36,9 @@ public class Order implements Serializable {
     }
 
     /**
-     * V(0) = ShelfLife - (1 + actualDecayRate) * t where t is the on-shelf duration and V(N) = V(N - 1) - ( 1 + actualDecayRate) * t where
-     * t is the on-shelf duration counting from shelf-switch
+     *  Reset the order value, this needs to be called each time the order been picked up or put on the shelf.
+     * V (1) = ShelfLife-(1 + actualDecayRate) * t where V (1) is the value on shelf-1 before shelf-switch and t is the time on the shelf-1
+     * V (N) = V (N-1)-(1 + actualDecayRate) * t where V (N) is the value on shelf-N and t is the time on shelf-N
      */
     public void resetValue() {
         Long onShelfDuration = SECONDS.between(onShelfDate, LocalDateTime.now());
@@ -49,12 +50,20 @@ public class Order implements Serializable {
         }
     }
 
+    /**
+     * Get the normalized order value.
+     * @return
+     */
     public Double getNormalizedValue() {
         if (decayDate == null || shelfLife == null) return null;
         Long latestDeliveryTime = SECONDS.between(LocalDateTime.now(), decayDate);
         return latestDeliveryTime / shelfLife;
     }
 
+    /**
+     * Get the latest delivery time in seconds.
+     * @return
+     */
     public Long getLatestDeliveryTime() {
         Double actualDecayRate = getActualDecayRate();
         Long latestDeliveryTime = null;

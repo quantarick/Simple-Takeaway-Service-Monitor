@@ -31,6 +31,10 @@ public class DeliveryService {
 
     private final OrderService orderService;
 
+    /**
+     * Deliver the order, for now, it will only log the event, and in real production, an external system would be integrated.
+     * @param order
+     */
     public void accept(Order order) {
         scheduler.schedule(
             new Runnable() {

@@ -44,6 +44,9 @@ public class OrderService {
 
     private Map<RMapCache, List<Integer>> shelfEventListeners = new HashMap<>();
 
+    /**
+     * Scan the overflow shelf and move order back to the target shelf if possible.
+     */
     public void scanOverflowShelf() {
         // lock the overflow shelf.
         RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
@@ -89,6 +92,9 @@ public class OrderService {
         }
     }
 
+    /**
+     * Put the order on shelf
+     */
     @Async
     public void accept(Order order) {
         RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");

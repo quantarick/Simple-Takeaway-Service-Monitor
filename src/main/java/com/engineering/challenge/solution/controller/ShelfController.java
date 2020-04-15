@@ -30,6 +30,11 @@ public class ShelfController {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * SSE API to get shelf status, new data will be streamed when there's add/remove on orders.
+     * @param st, the shelf type, available values are 'hot', 'cold', 'frozen', 'overflow'
+     * @return
+     */
     @GetMapping(value = "/{shelf-type}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<ShelfDTO>> getShelf(@PathVariable("shelf-type") String st) {
         ShelfType shelfType = ShelfType.fromString(st);

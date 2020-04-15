@@ -80,6 +80,9 @@ public class OrderEventService {
         );
     }
 
+    /**
+     * Accept a new order and notify the delivery service to pick up the order.
+     */
     @KafkaListener(topics = "#{'${order-app.order-event-topic-name}'}", clientIdPrefix = "order-event", containerFactory = "kafkaListenerContainerFactory")
     public void accept(ConsumerRecord<Long, Order> cr, @Payload Order payload) {
         //logger.info("[OrderEventService] received key {} | Payload: {} | Record: {}", cr.key(), payload, cr.toString());

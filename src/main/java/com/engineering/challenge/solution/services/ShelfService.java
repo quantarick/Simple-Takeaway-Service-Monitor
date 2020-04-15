@@ -61,6 +61,9 @@ public class ShelfService {
         return eventPublisher;
     }
 
+    /**
+     * Send a message to reactor kafka when there's order change and the latter one will involve SSE
+     */
     public void onShelfChange(ShelfType shelfType) {
         ShelfDTO shelfSnapshot = getShelfSnapshot(shelfType);
         kafkaSender.send(
@@ -106,6 +109,5 @@ public class ShelfService {
         }
         return SenderRecord.create(new ProducerRecord<String, String>(topicName, matchJsonStr), shelf.getType().toString());
     }
-
 
 }
