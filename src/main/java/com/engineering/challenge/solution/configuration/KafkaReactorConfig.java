@@ -30,6 +30,12 @@ public class KafkaReactorConfig {
     @Value("${order-app.shelf-change-event-topic-name}")
     String topicName;
 
+    @Value("${kafka.client.id}")
+    String kafkaClientId;
+
+    @Value("${kafka.group.id}")
+    String kafkaGroupId;
+
     @Bean
     KafkaReceiver kafkaReceiver() {
 
@@ -37,8 +43,8 @@ public class KafkaReactorConfig {
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        configProps.put(ConsumerConfig.CLIENT_ID_CONFIG, "order-reactor-client");
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "order-reactor-group");
+        configProps.put(ConsumerConfig.CLIENT_ID_CONFIG, kafkaClientId);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaGroupId);
         configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
         return new DefaultKafkaReceiver(ConsumerFactory.INSTANCE,

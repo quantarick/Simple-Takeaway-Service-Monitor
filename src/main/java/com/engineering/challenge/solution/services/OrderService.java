@@ -9,7 +9,6 @@ import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -106,10 +105,6 @@ public class OrderService {
                 }
                 // if the target shelf is full, try to put it on the overflow shelf.
                 else {
-                    // release target shelf lock to improve performance, the order will go to either target shelf or overflow shelf,
-                    // which means the shelfLock can be released from here.
-                    shelfLock.unlock();
-
                     // lock the overflow shelf.
                     RLock overflowShelfLock = redissonClient.getReadWriteLock(OVERFLOW.toString() + "_lock").writeLock();
                     if (overflowShelfLock.tryLock()) {
@@ -132,11 +127,7 @@ public class OrderService {
                     }
                 }
             } finally {
-                try {
-                    shelfLock.unlock();
-                } catch (IllegalMonitorStateException e) {
-                    logger.info("Shelf lock has been unlocked.");
-                }
+                shelfLock.unlock();
             }
         } else {
             // system busy, requeue the order.

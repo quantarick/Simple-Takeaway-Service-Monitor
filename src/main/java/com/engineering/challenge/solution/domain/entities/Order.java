@@ -3,13 +3,10 @@ package com.engineering.challenge.solution.domain.entities;
 import com.engineering.challenge.solution.domain.ShelfType;
 import com.engineering.challenge.solution.utils.FNV1a;
 
-import org.redisson.spring.data.connection.SecondsConvertor;
 import org.springframework.util.SerializationUtils;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 
 import lombok.Data;
 
