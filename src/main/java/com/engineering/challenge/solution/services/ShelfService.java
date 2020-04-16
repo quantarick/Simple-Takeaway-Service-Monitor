@@ -36,6 +36,8 @@ public class ShelfService {
 
     private final RedissonClient redissonClient;
 
+    private final RMapCacheManager rMapCacheManager;
+
     @Value("${order-app.shelf-change-event-topic-name}")
     private String topicName;
 
@@ -91,7 +93,7 @@ public class ShelfService {
     private List<OrderDTO> peekOrdersOnShelf(ShelfType shelfType) {
         // lock the target shelf.
         RLock shelfLock = redissonClient.getReadWriteLock(shelfType.toString() + "_lock").readLock();
-        RMapCache<Long, Order> shelf = redissonClient.getMapCache(shelfType.toString());
+        RMapCache<Long, Order> shelf = rMapCacheManager.getCache(shelfType.toString());
         shelfLock.lock();
         try {
             return shelf.values().stream().map(o -> modelMapper.map(o, OrderDTO.class)).collect(Collectors.toList());

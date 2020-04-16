@@ -29,11 +29,12 @@ public class DeliveryService {
 
     private final RedissonClient redissonClient;
 
+    private final RMapCacheManager rMapCacheManager;
+
     private final OrderService orderService;
 
     /**
      * Deliver the order, for now, it will only log the event, and in real production, an external system would be integrated.
-     * @param order
      */
     public void accept(Order order) {
         scheduler.schedule(
@@ -43,14 +44,14 @@ public class DeliveryService {
                     final Long candidateOrderIdentifier = order.getIdentifier();
 
                     // lock the order_status.
-                    RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
+                    RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
                     RLock statusLock = orderStatus.getReadWriteLock(candidateOrderIdentifier).writeLock();
                     statusLock.lock();
                     try {
                         // locate the shelf on which the order is.
                         String shelfName = orderStatus.get(candidateOrderIdentifier);
                         if (shelfName != null) {
-                            RMapCache<Long, Order> shelf = redissonClient.getMapCache(shelfName);
+                            RMapCache<Long, Order> shelf = rMapCacheManager.getCache(shelfName);
                             RLock shelfLock = redissonClient.getReadWriteLock(shelfName + "_lock").writeLock();
                             shelfLock.lock();
                             try {
@@ -61,21 +62,15 @@ public class DeliveryService {
                                     orderStatus
                                 );
                                 if (candidateOrder != null) {
-                                    logger.info(
-                                        String.format("Deliver the order [%d]-[%s] successfully: %s", candidateOrderIdentifier, candidateOrder.getName(), candidateOrder)
-                                    );
+                                    logger.info("Deliver the order [{}]-[{}] successfully: {}", candidateOrderIdentifier, candidateOrder.getName(), candidateOrder);
                                 } else {
-                                    logger.warn(
-                                        String.format("Failed to deliver the order [%d]-[%s] cause it already decayed.", candidateOrderIdentifier, order.getName())
-                                    );
+                                    logger.warn("Failed to deliver the order [{}]-[{}] cause it already decayed.", candidateOrderIdentifier, order.getName());
                                 }
                             } finally {
                                 shelfLock.unlock();
                             }
                         } else {
-                            logger.warn(
-                                String.format("Failed to deliver the order [%d]-[%s] cause it already decayed.", candidateOrderIdentifier, order.getName())
-                            );
+                            logger.warn("Failed to deliver the order [{}]-[{}] cause it already decayed.", candidateOrderIdentifier, order.getName());
                         }
                     } finally {
                         statusLock.unlock();

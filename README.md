@@ -95,7 +95,7 @@ and *Main class*
 ## API
 
 ### Orders
-* create a order, note the delivery service will be automatically called and adding 2~10s delay to pick up the order from the shelf.
+* place a new order, note the delivery service will be automatically called and adding 2~10s delay to pick up the order from the shelf.
 
 ```properties
   POST http://localhost:8080/orders
@@ -118,25 +118,24 @@ and *Main class*
 the response of streaming
 
 ```js
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.5142857142857142},{"name":"Beef Stew","decayRate":0.69,"temp":"hot","shelfLife":206.0,"normalizedValue":0.5242718446601942}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.8647148288973384},{"name":"Cobb Salad","decayRate":0.19,"temp":"cold","shelfLife":269.0,"normalizedValue":0.889182156133829},{"name":"Coke","decayRate":0.25,"temp":"cold","shelfLife":240.0,"normalizedValue":0.8697916666666666},{"name":"Cottage Cheese","decayRate":0.22,"temp":"cold","shelfLife":251.0,"normalizedValue":0.8749003984063745},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.8666666666666667}]}
 
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.4666666666666667},{"name":"Beef Stew","decayRate":0.69,"temp":"hot","shelfLife":206.0,"normalizedValue":0.47572815533980584}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.8126235741444868},{"name":"Cobb Salad","decayRate":0.19,"temp":"cold","shelfLife":269.0,"normalizedValue":0.8449442379182156},{"name":"Coke","decayRate":0.25,"temp":"cold","shelfLife":240.0,"normalizedValue":0.8177083333333334},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.8144578313253013}]}
 
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.41904761904761906},{"name":"Beef Stew","decayRate":0.69,"temp":"hot","shelfLife":206.0,"normalizedValue":0.42718446601941745}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.760532319391635},{"name":"Cobb Salad","decayRate":0.19,"temp":"cold","shelfLife":269.0,"normalizedValue":0.8007063197026022},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.7622489959839358}]}
 
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.37142857142857144},{"name":"Beef Stew","decayRate":0.69,"temp":"hot","shelfLife":206.0,"normalizedValue":0.3786407766990291}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.7084410646387833},{"name":"Cobb Salad","decayRate":0.19,"temp":"cold","shelfLife":269.0,"normalizedValue":0.7564684014869888},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.7100401606425704}]}
 
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.3238095238095238}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.6563498098859316},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.6578313253012049}]}
 
-data:{"type":"hot","orders":[{"name":"Pad See Ew","decayRate":0.72,"temp":"hot","shelfLife":210.0,"normalizedValue":0.2761904761904762}]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.6042585551330799},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.6056224899598394}]}
 
-data:{"type":"hot","orders":[]}
+data:{"type":"cold","orders":[{"name":"Yogurt","decayRate":0.37,"temp":"cold","shelfLife":263.0,"normalizedValue":0.5521673003802281},{"name":"Acai Bowl","decayRate":0.3,"temp":"cold","shelfLife":249.0,"normalizedValue":0.5534136546184739}]}
 
-data:{"type":"hot","orders":[]}
+data:{"type":"cold","orders":[]}
 
-data:{"type":"hot","orders":[]}
+data:{"type":"cold","orders":[]}
 
-data:{"type":"hot","orders":[]}
 ```
 
 ## Feedback

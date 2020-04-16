@@ -43,6 +43,8 @@ public class OrderEventService {
 
     private final RedissonClient redissonClient;
 
+    private final RMapCacheManager rMapCacheManager;
+
     private final ShelfService shelfService;
 
     private final KafkaTemplate<Long, Object> kafkaTemplate;
@@ -56,7 +58,7 @@ public class OrderEventService {
 
     public void placeNewOrder(OrderDTO newOrder) {
         Order order = mapper.map(newOrder, Order.class);
-        RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
+        RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
         orderStatus.put(order.getIdentifier(), ShelfType.WAITING.toString());
         kafkaTemplate.send(topicName, order.getIdentifier(), order);
     }
@@ -65,7 +67,7 @@ public class OrderEventService {
     public void init() {
         Arrays.stream(ShelfType.values()).forEach(
             st -> {
-                RMapCache shelf = redissonClient.getMapCache(st.toString());
+                RMapCache shelf = rMapCacheManager.getCache(st.toString());
                 registerExpiredHandler(shelf);
             }
         );
@@ -98,7 +100,7 @@ public class OrderEventService {
         listeners.add(shelf.addListener(new EntryExpiredListener<Long, Order>() {
             @Override
             public void onExpired(EntryEvent<Long, Order> entryEvent) {
-                RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
+                RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
                 RScoredSortedSet<Long> overflowShelfTracker = redissonClient.getScoredSortedSet("overflow_shelf_tracker");
                 Long orderIdentifier = entryEvent.getKey();
                 String orderName = entryEvent.getValue().getName();
@@ -112,12 +114,12 @@ public class OrderEventService {
                             case HOT:
                             case COLD:
                             case FROZEN:
-                                logger.info(String.format("Order [%d]-[%s] decayed, will be wasted", orderIdentifier, orderName));
+                                logger.info("Order [{}]-[{}] decayed, will be wasted", orderIdentifier, orderName);
                                 orderStatus.remove(orderIdentifier);
                                 orderService.scanOverflowShelf();
                                 break;
                             case OVERFLOW:
-                                logger.info(String.format("Order [%d]-[%s] decayed, will be wasted", orderIdentifier, orderName));
+                                logger.info("Order [{}]-[{}] decayed, will be wasted", orderIdentifier, orderName);
                                 orderStatus.remove(orderIdentifier);
                                 // remove the tracker for the order on the overflow shelf.
                                 overflowShelfTracker.remove(entryEvent.getValue());

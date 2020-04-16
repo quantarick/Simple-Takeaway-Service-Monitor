@@ -18,11 +18,11 @@ public class OrderController {
     private final OrderEventService orderEventService;
 
     /**
-     * Create new order, note the delivery service will be automatically called and adding 2~10s delay to pick up the order from the shelf.
+     * Place a new order, note the delivery service will be automatically called and adding 2~10s delay to pick up the order from the shelf.
      * @param newOrder
      */
     @PostMapping
-    public void createOrder(@RequestBody OrderDTO newOrder) {
+    public void placeNewOrder(@RequestBody OrderDTO newOrder) {
         orderEventService.placeNewOrder(newOrder);
     }
 

@@ -77,7 +77,7 @@ public class OrderControllerIT {
                 break;
             }
             List<JSONObject> ordersInBatch = orders.subList(start, end);
-            logger.info(String.format("The order batch size: %d", ordersInBatch.size()));
+            logger.info("The order batch size: {}", ordersInBatch.size());
             ordersInBatch.stream().forEach(
                 order -> {
                     HttpEntity<String> request =

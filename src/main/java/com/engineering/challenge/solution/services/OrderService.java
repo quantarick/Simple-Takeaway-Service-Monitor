@@ -32,6 +32,8 @@ public class OrderService {
 
     private final RedissonClient redissonClient;
 
+    private final RMapCacheManager rMapCacheManager;
+
     private final KafkaTemplate<Long, Object> kafkaTemplate;
 
     private final ShelfService shelfService;
@@ -49,12 +51,12 @@ public class OrderService {
      */
     public void scanOverflowShelf() {
         // lock the overflow shelf.
-        RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
+        RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
         RLock overflowShelfLock = redissonClient.getReadWriteLock(OVERFLOW.toString() + "_lock").writeLock();
         RScoredSortedSet<Long> overflowShelfTracker = redissonClient.getScoredSortedSet("overflow_shelf_tracker");
         overflowShelfLock.lock();
         try {
-            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(OVERFLOW.toString());
+            RMapCache<Long, Order> overflowShelf = rMapCacheManager.getCache(OVERFLOW.toString());
             while (overflowShelf.size() > 0) {
                 Long candidateOrderIdentifier = overflowShelfTracker.pollLast();
                 if (candidateOrderIdentifier != null) {
@@ -65,7 +67,7 @@ public class OrderService {
                         RLock targetShelfLock = redissonClient.getReadWriteLock(targetShelfType + "_lock").writeLock();
                         targetShelfLock.lock();
                         try {
-                            RMapCache<Long, Order> targetShelf = redissonClient.getMapCache(targetShelfType.toString());
+                            RMapCache<Long, Order> targetShelf = rMapCacheManager.getCache(targetShelfType.toString());
                             if (targetShelf.size() < shelfCapacity.get(targetShelfType)) {
                                 // remove order from the overflow shelf.
                                 candidateOrder = removeFromShelf(candidateOrderIdentifier, true, overflowShelf, orderStatus);
@@ -97,14 +99,14 @@ public class OrderService {
      */
     @Async
     public void accept(Order order) {
-        RMapCache<Long, String> orderStatus = redissonClient.getMapCache("order_status");
+        RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
         RScoredSortedSet<Long> overflowShelfTracker = redissonClient.getScoredSortedSet("overflow_shelf_tracker");
         ShelfType shelfType = order.getTemp();
         // lock the target shelf.
         RLock shelfLock = redissonClient.getReadWriteLock(shelfType.toString() + "_lock").writeLock();
         if (shelfLock.tryLock()) {
             try {
-                RMapCache<Long, Order> shelf = redissonClient.getMapCache(shelfType.toString());
+                RMapCache<Long, Order> shelf = rMapCacheManager.getCache(shelfType.toString());
                 if (shelf.size() < shelfCapacity.get(shelfType)) {
                     // put order on the target shelf
                     putOrderOnShelf(order, false, shelf, orderStatus, overflowShelfTracker);
@@ -115,13 +117,13 @@ public class OrderService {
                     RLock overflowShelfLock = redissonClient.getReadWriteLock(OVERFLOW.toString() + "_lock").writeLock();
                     if (overflowShelfLock.tryLock()) {
                         try {
-                            RMapCache<Long, Order> overflowShelf = redissonClient.getMapCache(OVERFLOW.toString());
+                            RMapCache<Long, Order> overflowShelf = rMapCacheManager.getCache(OVERFLOW.toString());
                             if (overflowShelf.size() < shelfCapacity.get(OVERFLOW)) {
                                 // put order on the overflow shelf.
                                 putOrderOnShelf(order, true, overflowShelf, orderStatus, overflowShelfTracker);
                             } else {
                                 // if both the target shelf and the overflow shelf are full, mark the order as 'wasted'.
-                                logger.info(String.format("No space for order[%s]: %s, waste directly.", order.getIdentifier(), order.toString()));
+                                logger.info("No space for order [{}]: {}, waste directly.", order.getIdentifier(), order);
                                 orderStatus.remove(order.getIdentifier());
                             }
                         } finally {
@@ -148,7 +150,7 @@ public class OrderService {
         order.resetValue();
 
         ShelfType toShelfType = toOverflowShelf ? OVERFLOW : order.getTemp();
-        logger.info(String.format("put order on shelf[%s]: %s", toShelfType, order.toString()));
+        logger.info("put order on shelf[{}]: {}", toShelfType, order);
         shelf.put(order.getIdentifier(), order, order.getLatestDeliveryTime(), TimeUnit.SECONDS);
 
         // update the order status.
@@ -172,7 +174,7 @@ public class OrderService {
 
         // !Important, need to reset value when situation changes.
         order.resetValue();
-        logger.info(String.format("remove order from shelf[%s]: %s", fromShelfType, order.toString()));
+        logger.info("remove order from shelf[{}]: {}", fromShelfType, order);
 
         // remove from the order status.
         RLock statusLock = orderStatus.getReadWriteLock(orderIdentifier).writeLock();
