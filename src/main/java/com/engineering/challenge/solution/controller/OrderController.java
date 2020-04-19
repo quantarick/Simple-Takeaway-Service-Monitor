@@ -22,8 +22,8 @@ public class OrderController {
      * @param newOrder
      */
     @PostMapping
-    public void placeNewOrder(@RequestBody OrderDTO newOrder) {
-        orderEventService.placeNewOrder(newOrder);
+    public OrderDTO placeNewOrder(@RequestBody OrderDTO newOrder) {
+        return orderEventService.placeNewOrder(newOrder);
     }
 
 }

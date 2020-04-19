@@ -147,11 +147,11 @@ public class OrderService {
         // set/reset on-shelf date for the order and ready to put on shelf.
         order.setOnShelfDate(LocalDateTime.now());
         order.setIsOnOverflowShelf(toOverflowShelf);
-        order.resetValue();
+        order.onMove();
 
         ShelfType toShelfType = toOverflowShelf ? OVERFLOW : order.getTemp();
-        logger.info("put order on shelf[{}]: {}", toShelfType, order);
-        shelf.put(order.getIdentifier(), order, order.getLatestDeliveryTime(), TimeUnit.SECONDS);
+        logger.info("Put order on shelf[{}]: {}", toShelfType, order);
+        shelf.put(order.getIdentifier(), order, new Double(order.getLatestDeliveryTime() * 1000).longValue(), TimeUnit.MILLISECONDS);
 
         // update the order status.
         orderStatus.put(order.getIdentifier(), toShelfType.toString());
@@ -173,8 +173,8 @@ public class OrderService {
         ShelfType fromShelfType = fromOverflowShelf ? OVERFLOW : order.getTemp();
 
         // !Important, need to reset value when situation changes.
-        order.resetValue();
-        logger.info("remove order from shelf[{}]: {}", fromShelfType, order);
+        order.onMove();
+        logger.info("Remove order from shelf[{}]: {}", fromShelfType, order);
 
         // remove from the order status.
         RLock statusLock = orderStatus.getReadWriteLock(orderIdentifier).writeLock();

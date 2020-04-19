@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 import lombok.Data;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 @Data
@@ -41,7 +42,7 @@ public class Order implements Serializable {
      * ....
      * V (N) = V (N-1)-(1 + actualDecayRate) * t where V (N) is the value on shelf-N and t is the time on shelf-N
      */
-    public void resetValue() {
+    public void onMove() {
         Long onShelfDuration = SECONDS.between(onShelfDate, LocalDateTime.now());
         Double actualDecayRate = getActualDecayRate();
         if (value == null) {
@@ -49,6 +50,9 @@ public class Order implements Serializable {
         } else {
             value = value - (1d + actualDecayRate) * onShelfDuration;
         }
+        // reset value happens always on picking up or putting the order on the shelf and it's almost instantly,
+        // so trigger the recalculation of decay date is necessary.
+        calcDecayDate();
     }
 
     /**
@@ -56,24 +60,31 @@ public class Order implements Serializable {
      * @return
      */
     public Double getNormalizedValue() {
-        if (decayDate == null) getLatestDeliveryTime();
-        Long latestDeliveryTime = SECONDS.between(LocalDateTime.now(), decayDate);
-        return latestDeliveryTime * (1d + getActualDecayRate()) / shelfLife;
+        if (decayDate == null) calcDecayDate();
+        Long latestDeliveryTime = MILLIS.between(LocalDateTime.now(), decayDate);
+        return latestDeliveryTime * (1d + getActualDecayRate()) / (shelfLife * 1000);
+    }
+
+    /**
+     * Calculate the decay date.
+     */
+    public void calcDecayDate() {
+        final Double latestDeliveryTime = getLatestDeliveryTime();
+        decayDate = LocalDateTime.now().plus(new Double(latestDeliveryTime * 1000).longValue(), MILLIS);
     }
 
     /**
      * Get the latest delivery time in seconds.
      * @return
      */
-    public Long getLatestDeliveryTime() {
+    public Double getLatestDeliveryTime() {
         Double actualDecayRate = getActualDecayRate();
-        Long latestDeliveryTime = null;
+        Double latestDeliveryTime = null;
         if (value == null) {
-            latestDeliveryTime = new Double(shelfLife / (1d + actualDecayRate)).longValue();
+            latestDeliveryTime = new Double(shelfLife / (1d + actualDecayRate));
         } else {
-            latestDeliveryTime = new Double(value / (1d + actualDecayRate)).longValue();
+            latestDeliveryTime = new Double(value / (1d + actualDecayRate));
         }
-        decayDate = LocalDateTime.now().plus(latestDeliveryTime, SECONDS);
         return latestDeliveryTime;
     }
 

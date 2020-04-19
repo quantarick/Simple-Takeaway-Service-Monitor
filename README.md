@@ -5,7 +5,7 @@ The description of the solution and implementation for the code challenge.
 ## Analysis
 
 * Production-ready requires a distributed system design, i.e. support multiple nodes
-* Poisson Distribution with an average of 3.25 deliveries per second (lambda), according to https://keisan.casio.com/exec/system/1180573179 to cover the lower cumulative probability over 99%, we need to support to 9 TPS
+* Poisson Distribution with an average of 3.25 deliveries per second (lambda), according to https://keisan.casio.com/exec/system/1180573179 to cover the lower cumulative probability over 99%, we need to support to 9 QPS
 * The client should get updated shelf information when order is added or removed, and considering it's not a bidirectional communication scenario, so SSE is better than WebSocket for this challenge.
 * Order decay formula, considering it might move from the overflow shelf to the target shelf which will double or keep the decay rate:
 
@@ -24,9 +24,9 @@ The description of the solution and implementation for the code challenge.
 ## Solution and Architecture
 
 * Springboot
-* Kafka as Event-Driven Backbone
+* Kafka as Scalable Message Storage and Event-Driven Backbone
 * Redis to provide persist function
-* Redisson to provide distributed lock/synchronizers and Netty task scheduling, i.e. Order Expired Event.
+* Redisson to provide distributed lock/synchronizers and Netty task scheduling, i.e. Order Expired Event Driven.
 * Kafka Reactor + WebFlux SSE to streaming the order update event
 
 
@@ -57,8 +57,8 @@ As explained in Redis quick start installation section, Redis can be built from 
 ```sh
   > tar -xzf kafka_2.12-2.4.1.tgz
   > cd kafka_2.12-2.4.1
-  > bin/zookeeper-server-start.sh config/zookeeper.properties
-  > bin/kafka-server-start.sh config/server.properties
+  > bin/zookeeper-server-start.sh com.engineering.challenge.solution.config/zookeeper.properties
+  > bin/kafka-server-start.sh com.engineering.challenge.solution.config/server.properties
 ```
 
 ### Build

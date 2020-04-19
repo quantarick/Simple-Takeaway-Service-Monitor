@@ -39,14 +39,15 @@ public class ShelfController {
     public Flux<ServerSentEvent<ShelfDTO>> getShelf(@PathVariable("shelf-type") String st) {
         ShelfType shelfType = ShelfType.fromString(st);
 
-        Flux<ServerSentEvent<ShelfDTO>> heartbeatStream = Flux.interval(Duration.ofSeconds(10)).map(
+        // Note, if need to refresh periodically, then remove take(1) and increase the interval.
+        Flux<ServerSentEvent<ShelfDTO>> heartbeatStream = Flux.interval(Duration.ofMillis(10)).map(
             tick -> toServerSentEvent(shelfService.getShelfSnapshot(shelfType))
-        );
+        ).take(1);
 
         return shelfService.getEventPublisher()
             .map(stringServerSentEvent -> toShelfDTO(stringServerSentEvent.data()))
-            .filter(match -> match != null)
-            .filter(match -> match.getType().equals(shelfType))
+            .filter(shelf -> shelf != null)
+            .filter(shelf -> shelf.getType().equals(shelfType))
             .map(this::toServerSentEvent)
             .mergeWith(heartbeatStream);
     }

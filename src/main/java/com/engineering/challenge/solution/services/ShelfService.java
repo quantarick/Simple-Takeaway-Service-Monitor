@@ -12,8 +12,11 @@ import org.modelmapper.ModelMapper;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +34,8 @@ import reactor.kafka.sender.SenderRecord;
 @Service
 @RequiredArgsConstructor
 public class ShelfService {
+
+    private static Logger logger = LoggerFactory.getLogger(ShelfService.class);
 
     private final KafkaReceiver<String, String> kafkaReceiver;
 
@@ -66,6 +71,7 @@ public class ShelfService {
     /**
      * Send a message to reactor kafka when there's order change and the latter one will involve SSE
      */
+    @Async
     public void onShelfChange(ShelfType shelfType) {
         ShelfDTO shelfSnapshot = getShelfSnapshot(shelfType);
         kafkaSender.send(
@@ -78,11 +84,10 @@ public class ShelfService {
     }
 
     public ShelfDTO getShelfSnapshot(ShelfType shelfType) {
-        return ShelfDTO
-            .builder()
-            .type(shelfType)
-            .orders(peekOrdersOnShelf(shelfType))
-            .build();
+        ShelfDTO shelf = new ShelfDTO();
+        shelf.setType(shelfType);
+        shelf.setOrders(peekOrdersOnShelf(shelfType));
+        return shelf;
     }
 
     /**

@@ -24,6 +24,9 @@ import java.util.Map;
 @Configuration
 public class KafkaTemplateConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @Autowired
     private KafkaProperties kafkaProperties;
 
@@ -32,12 +35,10 @@ public class KafkaTemplateConfig {
 
     @Bean
     public Map<String, Object> producerConfigs() {
-        Map<String, Object> props =
-            new HashMap<>(kafkaProperties.buildProducerProperties());
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-            LongSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-            JsonSerializer.class);
+        Map<String, Object> props = new HashMap<>(kafkaProperties.buildProducerProperties());
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return props;
     }
 

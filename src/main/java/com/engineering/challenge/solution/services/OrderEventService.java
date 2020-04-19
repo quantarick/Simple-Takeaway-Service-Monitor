@@ -56,11 +56,12 @@ public class OrderEventService {
 
     private final ModelMapper mapper = new ModelMapper();
 
-    public void placeNewOrder(OrderDTO newOrder) {
+    public OrderDTO placeNewOrder(OrderDTO newOrder) {
         Order order = mapper.map(newOrder, Order.class);
         RMapCache<Long, String> orderStatus = rMapCacheManager.getCache("order_status");
         orderStatus.put(order.getIdentifier(), ShelfType.WAITING.toString());
         kafkaTemplate.send(topicName, order.getIdentifier(), order);
+        return mapper.map(order, OrderDTO.class);
     }
 
     @PostConstruct
